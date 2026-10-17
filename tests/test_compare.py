@@ -28,7 +28,11 @@ def test_compare_metrics_creates_model_and_scene_summaries(tmp_path: Path):
     first = tmp_path / "first.csv"
     second = tmp_path / "second.csv"
     write_csv(first, [_metric_row("a", "indoor", "1", "0.9")], fields)
-    write_csv(second, [_metric_row("b", "indoor", "1", "0.8")], fields)
+    legacy_row = _metric_row("b", "indoor", "1", "0.8")
+    for legacy_field in ("scene_type", "tags", "license"):
+        legacy_row.pop(legacy_field)
+    legacy_fields = [field for field in fields if field not in {"scene_type", "tags", "license"}]
+    write_csv(second, [legacy_row], legacy_fields)
 
     output = tmp_path / "comparison"
     compare_metrics([f"DepthAnything={first}", f"MiDaS={second}"], output)
@@ -36,5 +40,5 @@ def test_compare_metrics_creates_model_and_scene_summaries(tmp_path: Path):
     summary = read_csv(output / "model_summary.csv")
     scenes = read_csv(output / "scene_summary.csv")
     assert {row["model_label"] for row in summary} == {"DepthAnything", "MiDaS"}
-    assert {row["scene_type"] for row in scenes} == {"indoor"}
+    assert {row["scene_type"] for row in scenes} == {"indoor", "unlabeled"}
     assert (output / "compare_spearman.png").is_file()

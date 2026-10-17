@@ -1,0 +1,9 @@
+model_label,scene_type,perturbation,count,spearman_mean,order_consistency_mean,affine_nrmse_mean,edge_f1_mean
+DepthAnythingV2,unlabeled,blur,18,0.99766331,0.99592481,0.06054245,0.84080617
+DepthAnythingV2,unlabeled,brightness,24,0.99939761,0.99932548,0.02879883,0.92112752
+DepthAnythingV2,unlabeled,noise,18,0.99892493,0.99793142,0.04703491,0.87390759
+DepthAnythingV2,unlabeled,resolution,18,0.99939274,0.99920881,0.02145125,0.92919508
+MiDaS,unlabeled,blur,18,0.99425747,0.98864160,0.09083738,0.84942984
+MiDaS,unlabeled,brightness,24,0.99606117,0.99291057,0.07428315,0.86280248
+MiDaS,unlabeled,noise,18,0.99722405,0.99358121,0.06860286,0.86089971
+MiDaS,unlabeled,resolution,18,0.99946938,0.99873670,0.02111466,0.95905330

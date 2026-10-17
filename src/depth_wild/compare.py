@@ -4,6 +4,9 @@ import argparse
 from collections import defaultdict
 from pathlib import Path
 
+import matplotlib
+
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -20,7 +23,7 @@ def _parse_input(specification: str) -> tuple[str, Path]:
     return label.strip(), Path(path.strip())
 
 
-def compare_metrics(specifications: list[str], output_dir: Path) -> None:
+def compare_metrics(specifications: list[str], output_dir: Path, *, include_per_image: bool = False) -> None:
     if len(specifications) < 2:
         raise ValueError("provide at least two LABEL=PATH metric inputs")
     combined: list[dict[str, object]] = []
@@ -33,8 +36,16 @@ def compare_metrics(specifications: list[str], output_dir: Path) -> None:
             combined.append({**row, "model_label": label})
 
     output_dir.mkdir(parents=True, exist_ok=True)
-    combined_fields = ["model_label", *[key for key in combined[0] if key != "model_label"]]
-    write_csv(output_dir / "combined_metrics.csv", combined, combined_fields)
+    # Older experiment files may predate scene metadata columns. Build a
+    # stable union so historical and current runs can still be compared.
+    field_union: list[str] = []
+    for row in combined:
+        for key in row:
+            if key != "model_label" and key not in field_union:
+                field_union.append(key)
+    combined_fields = ["model_label", *field_union]
+    if include_per_image:
+        write_csv(output_dir / "combined_metrics.csv", combined, combined_fields)
 
     grouped: dict[tuple[str, str, float], list[dict[str, object]]] = defaultdict(list)
     scene_grouped: dict[tuple[str, str, str], list[dict[str, object]]] = defaultdict(list)
@@ -93,12 +104,17 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Compare robustness metrics from two or more models.")
     parser.add_argument("--metrics", action="append", required=True, help="Repeat LABEL=PATH for each model")
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument(
+        "--include-per-image",
+        action="store_true",
+        help="Also export per-image rows, which may contain source filenames",
+    )
     return parser.parse_args()
 
 
 def main() -> None:
     args = parse_args()
-    compare_metrics(args.metrics, args.output)
+    compare_metrics(args.metrics, args.output, include_per_image=args.include_per_image)
     print(f"Wrote model comparison: {args.output}")
 
 

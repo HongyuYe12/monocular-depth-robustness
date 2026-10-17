@@ -22,6 +22,15 @@
 - Gradio 交互式鲁棒性 Demo；
 - 不下载模型即可运行的单元测试。
 
+## Preliminary Results
+
+当前仓库包含一组仅用于验证完整研究流程的初步结果：6 张自采/许可图片、4 类合成扰动、Depth Anything V2 Small 与 MiDaS/DPT Hybrid。请勿把这个小样本结果解释为模型的普遍排名。
+
+- [初步结果说明](reports/preliminary/README.md)
+- [模型汇总 CSV](reports/preliminary/model_summary.csv)
+- [仿射对齐误差曲线](reports/preliminary/compare_affine_nrmse.png)
+- [边缘稳定性曲线](reports/preliminary/compare_edge_f1.png)
+
 ## 目录结构
 
 ```text
@@ -168,7 +177,9 @@ depth-wild-compare `
   --output outputs/comparison
 ```
 
-输出包含 `model_summary.csv`、`scene_summary.csv`、合并后的逐图指标和四张模型对比曲线。必须使用同一个 manifest，才能保证输入条件一致。
+输出包含 `model_summary.csv`、`scene_summary.csv` 和四张模型对比曲线。必须使用同一个 manifest，才能保证输入条件一致。
+
+默认不会导出逐图记录，避免公开报告意外包含原始文件名。只有确实需要内部调试时才添加 `--include-per-image`。
 
 ## 9. 启动交互式 Demo
 
@@ -206,6 +217,7 @@ pytest
 - 边缘指标使用图像级分位数阈值，适合模型内对比，不替代标准基准协议；
 - 合成扰动不能覆盖真实相机在低光、运动模糊和压缩中的全部退化；
 - 不同预训练模型的训练数据可能重叠，跨模型结论需谨慎解释。
+- 仓库内的 preliminary 报告只有 6 张图，每个条件仅 6 个样本，只能作为流程验证和后续假设的依据。
 
 ## 参考资料
 

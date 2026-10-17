@@ -14,6 +14,7 @@ Thumbs.db
 # User-provided data, model artifacts, and generated results
 data/raw/*
 !data/raw/.gitkeep
+data/metadata.csv
 outputs/*
 !outputs/.gitkeep
 *.pt
