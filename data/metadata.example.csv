@@ -1,0 +1,3 @@
+source_relpath,scene_type,tags,license
+example-indoor.jpg,indoor,small-object;boundary,self-captured
+example-night.jpg,outdoor,low-light;reflective,self-captured

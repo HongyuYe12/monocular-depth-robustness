@@ -13,6 +13,9 @@ from .io import list_images, load_rgb, stable_id, write_csv
 MANIFEST_FIELDS = [
     "image_id",
     "source_relpath",
+    "scene_type",
+    "tags",
+    "license",
     "variant_id",
     "perturbation",
     "severity",
@@ -64,7 +67,29 @@ def _variant_name(kind: str, severity: int, value: float) -> str:
     return "original" if kind == "original" else f"{kind}-s{severity}-{value_text}"
 
 
-def build_dataset(input_dir: Path, output_dir: Path, config_path: Path) -> Path:
+def _load_metadata(path: Path | None) -> dict[str, dict[str, str]]:
+    if path is None:
+        return {}
+    from .io import read_csv
+
+    rows = read_csv(path)
+    metadata: dict[str, dict[str, str]] = {}
+    for row in rows:
+        relative = row.get("source_relpath", "").replace("\\", "/")
+        if not relative:
+            raise ValueError("metadata rows require source_relpath")
+        if relative in metadata:
+            raise ValueError(f"duplicate metadata row: {relative}")
+        metadata[relative] = row
+    return metadata
+
+
+def build_dataset(
+    input_dir: Path,
+    output_dir: Path,
+    config_path: Path,
+    metadata_path: Path | None = None,
+) -> Path:
     with config_path.open("r", encoding="utf-8") as handle:
         config = json.load(handle)
 
@@ -74,12 +99,14 @@ def build_dataset(input_dir: Path, output_dir: Path, config_path: Path) -> Path:
 
     perturbations = config.get("perturbations", {})
     global_seed = int(config.get("seed", 0))
+    metadata = _load_metadata(metadata_path)
     generated_dir = output_dir / "images"
     generated_dir.mkdir(parents=True, exist_ok=True)
     rows: list[dict[str, object]] = []
 
     for source_path in images:
         relative = source_path.relative_to(input_dir).as_posix()
+        image_metadata = metadata.get(relative, {})
         image_id = stable_id(relative)
         image = load_rgb(source_path)
         variants: list[tuple[str, int, float]] = [("original", 0, 0.0)]
@@ -102,6 +129,9 @@ def build_dataset(input_dir: Path, output_dir: Path, config_path: Path) -> Path:
                 {
                     "image_id": image_id,
                     "source_relpath": relative,
+                    "scene_type": image_metadata.get("scene_type", ""),
+                    "tags": image_metadata.get("tags", ""),
+                    "license": image_metadata.get("license", ""),
                     "variant_id": variant_id,
                     "perturbation": kind,
                     "severity": severity,
@@ -126,12 +156,13 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--input", type=Path, required=True, help="Directory containing source images")
     parser.add_argument("--output", type=Path, required=True, help="Output dataset directory")
     parser.add_argument("--config", type=Path, default=Path("configs/experiment.json"))
+    parser.add_argument("--metadata", type=Path, default=None, help="Optional scene metadata CSV")
     return parser.parse_args()
 
 
 def main() -> None:
     args = parse_args()
-    manifest = build_dataset(args.input, args.output, args.config)
+    manifest = build_dataset(args.input, args.output, args.config, args.metadata)
     print(f"Wrote manifest: {manifest}")
 
 

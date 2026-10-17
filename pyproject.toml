@@ -19,12 +19,15 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest>=8,<9"]
+demo = ["gradio>=5,<7"]
 
 [project.scripts]
 depth-wild-perturb = "depth_wild.perturb:main"
 depth-wild-infer = "depth_wild.infer:main"
 depth-wild-evaluate = "depth_wild.evaluate:main"
 depth-wild-plot = "depth_wild.plot:main"
+depth-wild-compare = "depth_wild.compare:main"
+depth-wild-demo = "depth_wild.demo:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

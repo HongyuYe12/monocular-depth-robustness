@@ -13,6 +13,9 @@ from .model import DepthEstimator
 PREDICTION_FIELDS = [
     "image_id",
     "source_relpath",
+    "scene_type",
+    "tags",
+    "license",
     "variant_id",
     "perturbation",
     "severity",
@@ -23,6 +26,18 @@ PREDICTION_FIELDS = [
     "depth_path",
     "visualization_path",
     "runtime_seconds",
+]
+MANIFEST_COPY_FIELDS = [
+    "image_id",
+    "source_relpath",
+    "scene_type",
+    "tags",
+    "license",
+    "variant_id",
+    "perturbation",
+    "severity",
+    "value",
+    "image_path",
 ]
 
 
@@ -99,7 +114,7 @@ def run_inference(
         colorize_depth(depth).save(visualization_path)
         records.append(
             {
-                **{key: row[key] for key in PREDICTION_FIELDS[:7]},
+                **{key: row.get(key, "") for key in MANIFEST_COPY_FIELDS},
                 "model_id": model_id,
                 "device": estimator.device,
                 "depth_path": depth_path,

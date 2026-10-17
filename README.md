@@ -17,6 +17,9 @@
 - 单图和批量推理，保存原始深度数组与可视化；
 - 无真实标注时的稳定性指标与 CSV 汇总；
 - 基础曲线图和最差案例表；
+- 可选场景标签与按场景汇总；
+- 多模型公平对比报告；
+- Gradio 交互式鲁棒性 Demo；
 - 不下载模型即可运行的单元测试。
 
 ## 目录结构
@@ -26,6 +29,7 @@
 ├── configs/experiment.json       # 固定实验设置
 ├── data/
 │   ├── raw/                      # 原始图片（不提交）
+│   ├── metadata.example.csv      # 场景标签模板
 │   └── README.md
 ├── outputs/                      # 生成结果（不提交）
 ├── src/depth_wild/
@@ -34,7 +38,9 @@
 │   ├── infer.py                  # 批量推理
 │   ├── metrics.py                # 稳定性指标
 │   ├── evaluate.py               # 评估与 CSV 汇总
-│   └── plot.py                   # 图表与最差案例
+│   ├── plot.py                   # 图表与最差案例
+│   ├── compare.py                # 多模型与分场景对比
+│   └── demo.py                   # Gradio Demo
 ├── tests/                        # 无模型下载测试
 ├── REPORT_TEMPLATE.md
 ├── pyproject.toml
@@ -62,10 +68,22 @@ pip install -e .
 
 数据应覆盖室内、室外、低光、细小物体、玻璃/反光表面等场景。项目不会自动下载或提交数据。
 
-## 3. 生成固定扰动集
+## 3. 添加场景标签（推荐）
+
+复制 `data/metadata.example.csv` 为 `data/metadata.csv`，为自己的图片填写：
+
+```csv
+source_relpath,scene_type,tags,license
+room.jpg,indoor,small-object;boundary,self-captured
+night-road.jpg,outdoor,low-light;reflective,self-captured
+```
+
+`source_relpath` 必须与 `data/raw/` 下的相对路径一致。标签使用分号分隔，不应凭文件内容自动猜测场景。
+
+## 4. 生成固定扰动集
 
 ```powershell
-depth-wild-perturb --input data/raw --output outputs/dataset --config configs/experiment.json
+depth-wild-perturb --input data/raw --output outputs/dataset --config configs/experiment.json --metadata data/metadata.csv
 ```
 
 输出包含处理后的图片和 `outputs/dataset/manifest.csv`。每个原图都会保存一个 `original` 基准版本；噪声由图片 ID 和全局种子共同决定，多次运行结果一致。
@@ -79,7 +97,9 @@ depth-wild-perturb --input data/raw --output outputs/dataset --config configs/ex
 
 修改强度时请保存配置并在报告中说明；模型之间必须使用同一份 manifest。
 
-## 4. 批量推理
+如果暂时没有标签，可以省略 `--metadata`。
+
+## 5. 批量推理
 
 ```powershell
 depth-wild-infer --manifest outputs/dataset/manifest.csv --output outputs/predictions/depth_anything_v2
@@ -105,7 +125,7 @@ depth-wild-infer --manifest outputs/dataset/manifest.csv --output outputs/predic
 
 `--device auto` 会优先使用 CUDA，其次 Apple MPS，否则使用 CPU。可显式传入 `--device cpu`。
 
-## 5. 评估稳定性
+## 6. 评估稳定性
 
 ```powershell
 depth-wild-evaluate --predictions outputs/predictions/depth_anything_v2/predictions.csv --output outputs/analysis/depth_anything_v2
@@ -122,7 +142,7 @@ depth-wild-evaluate --predictions outputs/predictions/depth_anything_v2/predicti
 
 这些指标衡量“相对原预测是否稳定”，不等同于相对真实深度的准确率。若加入 KITTI、NYU Depth V2 或 DA-2K，必须另行遵循官方划分、裁剪、尺度对齐和评估协议。
 
-## 6. 生成图表
+## 7. 生成图表
 
 ```powershell
 depth-wild-plot --metrics outputs/analysis/depth_anything_v2/metrics.csv --output outputs/analysis/depth_anything_v2/figures
@@ -130,7 +150,38 @@ depth-wild-plot --metrics outputs/analysis/depth_anything_v2/metrics.csv --outpu
 
 会生成各扰动强度下的均值曲线与 `worst_cases.csv`。正式报告还应检查原图、深度图和边缘，不应只按单一指标下结论。
 
-## 7. 测试
+## 8. 比较两个模型
+
+先用同一个 manifest 运行 MiDaS/DPT，并分别评估：
+
+```powershell
+depth-wild-infer --manifest outputs/dataset/manifest.csv --output outputs/predictions/midas --model Intel/dpt-hybrid-midas --device cpu
+depth-wild-evaluate --predictions outputs/predictions/midas/predictions.csv --output outputs/analysis/midas
+```
+
+再生成统一的模型与场景汇总：
+
+```powershell
+depth-wild-compare `
+  --metrics DepthAnythingV2=outputs/analysis/depth_anything_v2/metrics.csv `
+  --metrics MiDaS=outputs/analysis/midas/metrics.csv `
+  --output outputs/comparison
+```
+
+输出包含 `model_summary.csv`、`scene_summary.csv`、合并后的逐图指标和四张模型对比曲线。必须使用同一个 manifest，才能保证输入条件一致。
+
+## 9. 启动交互式 Demo
+
+Demo 依赖单独安装，避免基础实验环境被不必要的前端依赖占满：
+
+```powershell
+pip install -e .[demo]
+depth-wild-demo --device cpu
+```
+
+浏览器中可以上传一张图，选择扰动并查看原始/扰动深度图和稳定性指标。Demo 用于解释项目，不替代批量实验。参数有效范围与配置一致：亮度通常 `0.4–1.6`，模糊 `1–4`，噪声 `5–30`，分辨率 `(0, 1]`。
+
+## 10. 测试
 
 ```powershell
 pytest

@@ -22,15 +22,25 @@ def test_offline_dataset_and_evaluation_pipeline(tmp_path: Path):
         encoding="utf-8",
     )
     dataset_dir = tmp_path / "dataset"
-    manifest_path = build_dataset(raw_dir, dataset_dir, config_path)
+    metadata_path = tmp_path / "metadata.csv"
+    metadata_path.write_text(
+        "source_relpath,scene_type,tags,license\nscene.png,indoor,small-object;boundary,self-captured\n",
+        encoding="utf-8",
+    )
+    manifest_path = build_dataset(raw_dir, dataset_dir, config_path, metadata_path)
     manifest = read_csv(manifest_path)
     assert len(manifest) == 2
+    assert {row["scene_type"] for row in manifest} == {"indoor"}
+    assert {row["tags"] for row in manifest} == {"small-object;boundary"}
     assert (dataset_dir / "experiment.snapshot.json").is_file()
 
     prediction_rows = []
     prediction_fields = [
         "image_id",
         "source_relpath",
+        "scene_type",
+        "tags",
+        "license",
         "variant_id",
         "perturbation",
         "severity",
@@ -48,7 +58,7 @@ def test_offline_dataset_and_evaluation_pipeline(tmp_path: Path):
         np.save(depth_path, depth)
         prediction_rows.append(
             {
-                **{key: row[key] for key in prediction_fields[:7]},
+                **{key: row[key] for key in prediction_fields[:10]},
                 "model_id": "fake/model",
                 "device": "cpu",
                 "depth_path": depth_path,
@@ -64,6 +74,7 @@ def test_offline_dataset_and_evaluation_pipeline(tmp_path: Path):
     assert len(metrics) == 1
     assert float(metrics[0]["spearman"]) > 0.999
     assert float(metrics[0]["affine_nrmse"]) < 1e-6
+    assert metrics[0]["scene_type"] == "indoor"
 
     figures_dir = tmp_path / "figures"
     plot_metrics(metrics_path, figures_dir)

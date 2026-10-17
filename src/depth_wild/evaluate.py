@@ -13,6 +13,9 @@ from .metrics import robustness_metrics
 METRIC_FIELDS = [
     "image_id",
     "source_relpath",
+    "scene_type",
+    "tags",
+    "license",
     "variant_id",
     "perturbation",
     "severity",
@@ -22,6 +25,18 @@ METRIC_FIELDS = [
     "order_consistency",
     "affine_nrmse",
     "edge_f1",
+]
+PREDICTION_COPY_FIELDS = [
+    "image_id",
+    "source_relpath",
+    "scene_type",
+    "tags",
+    "license",
+    "variant_id",
+    "perturbation",
+    "severity",
+    "value",
+    "model_id",
 ]
 
 
@@ -55,7 +70,7 @@ def evaluate_predictions(predictions_path: Path, output_dir: Path) -> Path:
             )
             metric_rows.append(
                 {
-                    **{key: row[key] for key in METRIC_FIELDS[:7]},
+                    **{key: row.get(key, "") for key in PREDICTION_COPY_FIELDS},
                     **{key: f"{value:.8f}" for key, value in metrics.items()},
                 }
             )
