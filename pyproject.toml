@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "depth-wild"
 version = "0.1.0"
-description = "Reproducible robustness analysis for monocular depth estimation"
+description = "Depth-guided subject selection and autofocus research prototype"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
@@ -20,6 +20,7 @@ dependencies = [
 [project.optional-dependencies]
 dev = ["pytest>=8,<9"]
 demo = ["gradio>=5,<7"]
+raw = ["rawpy>=0.21,<1"]
 
 [project.scripts]
 depth-wild-perturb = "depth_wild.perturb:main"
@@ -28,6 +29,9 @@ depth-wild-evaluate = "depth_wild.evaluate:main"
 depth-wild-plot = "depth_wild.plot:main"
 depth-wild-compare = "depth_wild.compare:main"
 depth-wild-demo = "depth_wild.demo:main"
+dsafe-analyze = "depth_wild.autofocus:main"
+dsafe-validate-focus = "depth_wild.focus_validation:main"
+dsafe-evaluate-selection = "depth_wild.selection_eval:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

@@ -1,0 +1,18 @@
+{
+  "depth_path": "depth.npy",
+  "target_subject_id": "subject-2",
+  "subjects": [
+    {
+      "subject_id": "subject-1",
+      "label": "person",
+      "confidence": 0.94,
+      "box": [40, 80, 260, 620]
+    },
+    {
+      "subject_id": "subject-2",
+      "label": "bird",
+      "confidence": 0.82,
+      "box": [360, 150, 540, 390]
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "subject_preferences": {
+    "person": 1.0,
+    "bird": 0.9,
+    "cat": 0.85,
+    "dog": 0.85,
+    "horse": 0.75,
+    "car": 0.65,
+    "motorcycle": 0.65,
+    "bicycle": 0.55
+  },
+  "score_weights": {
+    "detection": 0.30,
+    "class_preference": 0.25,
+    "center": 0.15,
+    "area": 0.10,
+    "depth_separation": 0.15,
+    "depth_consistency": 0.05
+  },
+  "ambiguity_threshold": 0.22,
+  "minimum_detection_score": 0.55,
+  "larger_depth_is_near": true
+}

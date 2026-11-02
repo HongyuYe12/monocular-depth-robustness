@@ -1,8 +1,71 @@
-# Monocular Depth Estimation in the Wild
+# D-SAFE: Depth-Guided Subject-Aware Focus Estimation
 
-面向真实场景的单目深度估计与鲁棒性分析。项目使用预训练深度模型，系统考察光照、模糊、噪声和低分辨率对预测稳定性的影响。
+面向多深度与低照度场景的 AI 主体选择与深度引导对焦原型。现有的单目深度鲁棒性分析保留为基础实验层，并进一步用于主体深度分析、多深度歧义检测和初始焦距范围预测。
 
 > 本项目评估的是**相对深度**与预测稳定性。模型输出不能直接解释为“距离摄像头多少米”。在没有真实深度标注时，结果只能说明预测发生了怎样的变化，不能单独证明哪张深度图更准确。
+
+## D-SAFE autofocus prototype
+
+项目当前新增的对焦原型执行：
+
+```text
+RGB / 可选 RAW 临时帧
+  → AI 自动检测候选主体
+  → 单目深度估计
+  → 主体深度分布与背景分离分析
+  → 主体自动排序
+  → near / mid / far 初始焦距范围
+  → 主体区域验证帧清晰度微调
+```
+
+详细研究设计见 [D-SAFE_DESIGN.md](D-SAFE_DESIGN.md)。
+主体评分配置的逐字段中文说明见 [configs/autofocus.zh-CN.md](configs/autofocus.zh-CN.md)。
+
+运行单帧分析：
+
+```powershell
+dsafe-analyze `
+  --image path/to/frame.jpg `
+  --output outputs/dsafe/example `
+  --config configs/autofocus.json `
+  --device cpu
+```
+
+输出包括：
+
+- `subjects.png`：自动主体排名、焦距区域和歧义标记；
+- `depth.png` / `depth.npy`：相对深度可视化与原始数组；
+- `focus_report.json`：主体得分、深度统计、选定主体和初始焦距建议；
+- `requires_focus_sweep`：是否应使用验证帧进行保守微调。
+
+RAW 输入支持 `.ARW`、`.DNG`、`.CR2`、`.NEF` 等，需要额外安装：
+
+```powershell
+pip install -e .[raw]
+```
+
+验证预测焦点附近的三张临时帧：
+
+```powershell
+dsafe-validate-focus `
+  --frames focus-near.jpg focus-center.jpg focus-far.jpg `
+  --positions -1 0 1 `
+  --box 120,80,420,500 `
+  --output outputs/dsafe/focus-validation.json
+```
+
+这里的 `near/mid/far` 和 `positions` 都是相对焦点区域。连接真实相机前，需要针对具体机身和镜头建立映射。
+
+量化深度模块对主体选择的贡献：
+
+```powershell
+dsafe-evaluate-selection `
+  --scenes data/annotations/scene-*.json `
+  --config configs/autofocus.json `
+  --output outputs/dsafe/selection-ablation.json
+```
+
+标注格式参考 `data/focus_scene.example.json`。每个场景包含深度数组路径、检测候选框和人工确认的目标主体。工具会比较“不使用深度特征”与“使用深度特征”两种排序的主体选择正确率。
 
 ## 研究问题
 
