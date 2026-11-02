@@ -1,6 +1,6 @@
-# D-SAFE: Depth-Guided Subject-Aware Focus Estimation
+# Depth-Guided AI Subject Selection for Autofocus
 
-面向多深度与低照度场景的 AI 主体选择与深度引导对焦原型。
+**面向多深度与低照度场景的 AI 主体选择与深度引导自动对焦**
 
 ## Research question
 

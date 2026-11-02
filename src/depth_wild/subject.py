@@ -27,6 +27,65 @@ class SubjectCandidate:
         return max(0, self.box[3] - self.box[1])
 
 
+def box_iou(
+    first: tuple[int, int, int, int],
+    second: tuple[int, int, int, int],
+) -> float:
+    """计算两个候选框的交并比，用于识别重复检测结果。
+
+    IoU 越接近 1，表示两个框覆盖的区域越相似。这里不使用图像内容，
+    只根据几何重叠判断，因此它是一个轻量、可复现的后处理步骤。
+    """
+    left = max(first[0], second[0])
+    top = max(first[1], second[1])
+    right = min(first[2], second[2])
+    bottom = min(first[3], second[3])
+    intersection = max(0, right - left) * max(0, bottom - top)
+    first_area = max(0, first[2] - first[0]) * max(0, first[3] - first[1])
+    second_area = max(0, second[2] - second[0]) * max(0, second[3] - second[1])
+    union = first_area + second_area - intersection
+    return float(intersection / union) if union > 0 else 0.0
+
+
+def suppress_duplicate_candidates(
+    candidates: list[SubjectCandidate],
+    *,
+    iou_threshold: float = 0.55,
+) -> list[SubjectCandidate]:
+    """删除同类别且高度重叠的重复候选框。
+
+    YOLOS/DETR 类检测器可能为同一个沙发或人物输出多个相近框。如果全部进入
+    主体排序，同一物体会重复占据候选列表并干扰自动对焦。因此先按置信度从高
+    到低保留候选，再抑制与已保留同类别框高度重叠的结果。
+
+    不同类别暂不互相抑制，因为一个区域可能确实同时包含人和椅子；跨类别冲突
+    将来可结合实例分割或主体跟踪进一步判断。
+    """
+    if not 0.0 <= iou_threshold <= 1.0:
+        raise ValueError("iou_threshold must be between 0 and 1")
+
+    kept: list[SubjectCandidate] = []
+    for candidate in sorted(candidates, key=lambda item: item.confidence, reverse=True):
+        duplicate = any(
+            candidate.label == existing.label
+            and box_iou(candidate.box, existing.box) >= iou_threshold
+            for existing in kept
+        )
+        if not duplicate:
+            kept.append(candidate)
+
+    # 去重后重新编号，使报告中的 subject_id 连续且便于人工检查。
+    return [
+        SubjectCandidate(
+            subject_id=f"subject-{index + 1}",
+            label=candidate.label,
+            confidence=candidate.confidence,
+            box=candidate.box,
+        )
+        for index, candidate in enumerate(kept)
+    ]
+
+
 class SubjectDetector:
     """第一版自动主体识别基线，使用 COCO 类别的目标检测模型。
 
@@ -39,6 +98,7 @@ class SubjectDetector:
         model_id: str = "hustvl/yolos-tiny",
         device: str = "auto",
         threshold: float = 0.55,
+        nms_iou_threshold: float = 0.55,
     ) -> None:
         try:
             import torch
@@ -52,6 +112,7 @@ class SubjectDetector:
 
         self.device = device
         self.threshold = threshold
+        self.nms_iou_threshold = nms_iou_threshold
         self._torch = torch
         self._processor = AutoImageProcessor.from_pretrained(model_id)
         self._model = AutoModelForObjectDetection.from_pretrained(model_id).to(device).eval()
@@ -89,4 +150,7 @@ class SubjectDetector:
                     ),
                 )
             )
-        return candidates
+        return suppress_duplicate_candidates(
+            candidates,
+            iou_threshold=self.nms_iou_threshold,
+        )

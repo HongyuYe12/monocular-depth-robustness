@@ -19,5 +19,6 @@
   },
   "ambiguity_threshold": 0.22,
   "minimum_detection_score": 0.55,
+  "detection_nms_iou_threshold": 0.55,
   "larger_depth_is_near": true
 }

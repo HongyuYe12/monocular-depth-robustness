@@ -13,7 +13,7 @@ from .infer import colorize_depth
 from .model import DepthEstimator
 from .subject import SubjectDetector
 
-# 本文件负责编排完整的第一阶段流程：输入帧 → 主体识别 → 深度估计
+# 本文件负责编排深度引导自动对焦的第一阶段流程：输入帧 → 主体识别 → 深度估计
 # → 主体排序 → 初始焦距区域与是否需要焦点扫描。
 
 
@@ -61,6 +61,7 @@ def analyze_frame(
         model_id=detector_model,
         device=device,
         threshold=float(config.get("minimum_detection_score", 0.55)),
+        nms_iou_threshold=float(config.get("detection_nms_iou_threshold", 0.55)),
     )
     depth_estimator = DepthEstimator(model_id=depth_model, device=device)
 
@@ -108,7 +109,7 @@ def analyze_frame(
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="D-SAFE depth-guided subject selection prototype.")
+    parser = argparse.ArgumentParser(description="Depth-guided AI subject selection for autofocus.")
     parser.add_argument("--image", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--config", type=Path, default=Path("configs/autofocus.json"))

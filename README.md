@@ -1,10 +1,12 @@
-# D-SAFE: Depth-Guided Subject-Aware Focus Estimation
+# Depth-Guided AI Subject Selection for Autofocus
+
+**面向多深度与低照度场景的 AI 主体选择与深度引导自动对焦**
 
 面向多深度与低照度场景的 AI 主体选择与深度引导对焦原型。现有的单目深度鲁棒性分析保留为基础实验层，并进一步用于主体深度分析、多深度歧义检测和初始焦距范围预测。
 
 > 本项目评估的是**相对深度**与预测稳定性。模型输出不能直接解释为“距离摄像头多少米”。在没有真实深度标注时，结果只能说明预测发生了怎样的变化，不能单独证明哪张深度图更准确。
 
-## D-SAFE autofocus prototype
+## 深度引导自动对焦原型
 
 项目当前新增的对焦原型执行：
 
